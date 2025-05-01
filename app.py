@@ -1,71 +1,86 @@
-
 import streamlit as st
 from datetime import datetime
 
-# ------------------- ÜCRETLER -------------------
-SES_SISTEMI = {
-    "1": 2500,
-    "2": 3500,
-    "3": 1000  # palyaço
-}
-PALYACO_PAKET_1 = 3500
-PALYACO_PAKET_2 = {"Adana": 1500, "Çevre": 2000, "Uzak": 3000}
-DJ_UCRETI = {"Adana": 1500, "Çevre": 2000, "Uzak": 2500}
-SANATCI = {"Adana": 2000, "Çevre": 2500, "Uzak": 3000}
-SUNUCU = {"Adana": 2000, "Çevre": 2500, "Uzak": 3000}
-ARAC = 2000
-YEMEK_KISI_BASI = 350
+# ------------------- KAR/İŞARET ORANI -------------------
+MARKUP_RATE = 0.25
+MARKUP = 1 + MARKUP_RATE
 
-SEMAZENLER = {
-    "Adana": 1000, "Maraş": 1700, "Niğde": 1700, "Osmaniye": 1500, "Tarsus": 1300, "Mersin": 1500,
-    "Hatay": 1700, "Aksaray": 1900, "Nevşehir": 1900, "Karaisalı": 1300, "Hozan": 1500,
-    "Ceyhan": 1300, "İmamoğlu": 1300, "Malatya": 2500, "Elbistan": 1900
+# ------------------- MALİYET SÖZLÜKLERİ -------------------
+SEMAZEN_COSTS = {
+    "Adana": 1000, "Maraş": 1700, "Niğde": 1700, "Osmaniye": 1500,
+    "Tarsus": 1300, "Mersin": 1500, "Hatay": 1700, "Aksaray": 1900,
+    "Nevşehir": 1900, "Malatya": 2500
 }
+DJ_COSTS = {"Adana": 1500, "Cevre": 2000, "Uzak": 2500}
+PALYAÇO_PAKET1 = 3500
+PALYAÇO_PAKET2 = {"Adana":1500, "Cevre":2000, "Uzak":3000}
+SES1_BASE = 2500
+SES2_BASE = 3500
 
+# ------------------- YER SEÇİMİ -------------------
 st.title("🎤 İsra Organizasyon Otomatik Teklif Hesaplayıcı")
-st.write("Aşağıdan etkinlik bilgilerini girin. Sistem sizin için toplam fiyatı hesaplasın.")
+sehir = st.selectbox("Etkinlik Yeri", list(SEMAZEN_COSTS.keys()))
 
-etkinlik = st.selectbox("Etkinlik Türü", ["İlahi Grubu", "Semazen Ekibi", "Palyaço", "Mehter"])
-sehir = st.selectbox("Etkinlik Yeri", list(SEMAZENLER.keys()))
-semazen_sayisi = st.slider("Semazen Sayısı", 0, 3, 0)
-palyaço_paketi = st.radio("Palyaço Paketi Var mı?", ["Yok", "Paket 1", "Paket 2"])
-ses_sistemi = st.radio("Ses Sistemi Türü", ["1", "2", "Yok"])
-dj_var = st.checkbox("DJ Gerekli mi?")
-katilimci_sayisi = st.number_input("Toplam Kişi (araç+yemek hesaplanır)", min_value=1, max_value=20, value=5)
-tarih = st.date_input("Etkinlik Tarihi", value=datetime.now())
+# Bölge tespiti (DJ ve Palyaço 2 için)
+if sehir == "Adana":
+    region = "Adana"
+elif sehir in SEMAZEN_COSTS and sehir != "Adana":
+    region = "Cevre"
+else:
+    region = "Uzak"
 
+# ------------------- DİNAMİK MALIYETLER -------------------
+sem_cost = SEMAZEN_COSTS[sehir]
+sunucu_cost = int((sem_cost * 2) * MARKUP)
+sanatci_cost = int((sem_cost * 1.5) * MARKUP)
+dj_cost     = int((DJ_COSTS[region]) * MARKUP)
+ses1_cost   = int(SES1_BASE * MARKUP)
+ses2_cost   = int(SES2_BASE * MARKUP)
+
+# ------------------- ONAY KUTULARI (ÖNCE FİYATI GÖSTER) -------------------
+# Sabit seçilenler
+st.checkbox(f"✅ 1 Sunucu ({sunucu_cost} TL)", value=True, disabled=True)
+st.checkbox(f"✅ 1 Sanatçı ({sanatci_cost} TL)", value=True, disabled=True)
+st.checkbox(f"✅ 1 DJ ({dj_cost} TL)", value=True, disabled=True)
+
+# İlahi Grubu Paket 1 altı
+st.markdown("**Semazen Seçenekleri:**")
+sem1 = st.checkbox(f"1 Semazen ({int(sem_cost*MARKUP):.0f} TL)")
+sem2 = st.checkbox(f"2 Semazen ({int(sem_cost*2*MARKUP):.0f} TL)")
+sem3 = st.checkbox(f"3 Semazen ({int(sem_cost*3*MARKUP):.0f} TL)")
+sem4 = st.checkbox(f"4 Semazen ({int(sem_cost*4*MARKUP):.0f} TL)")
+
+# Ses sistemleri
+st.markdown("**Ses Sistemi Seçimi:**")
+ss1 = st.checkbox(f"Ses Sistemi 1 ({ses1_cost} TL)")
+ss2 = st.checkbox(f"Ses Sistemi 2 ({ses2_cost} TL)")
+
+# Palyaço paketleri
+pal1 = st.checkbox(f"Palyaço Paketi 1 ({int(PALYAÇO_PAKET1*MARKUP)} TL)")
+pal2 = st.checkbox(f"Palyaço Paketi 2 ({int(PALYAÇO_PAKET2[region]*MARKUP)} TL)")
+
+# Mehter
+st.markdown("**Mehter Paketleri:**")
+meh8  = st.checkbox(f"8 Kişilik Mehter ({int(sem_cost*1.75*8*MARKUP):.0f} TL kişi başı)")
+meh12 = st.checkbox(f"12 Kişilik Mehter ({int(sem_cost*1.75*12*MARKUP):.0f} TL kişi başı)")
+meh18 = st.checkbox(f"18 Kişilik Mehter ({int(sem_cost*1.75*18*MARKUP):.0f} TL kişi başı)")
+meh24 = st.checkbox(f"24 Kişilik Mehter ({int(sem_cost*1.75*24*MARKUP):.0f} TL kişi başı)")
+meh30 = st.checkbox(f"30 Kişilik Mehter ({int(sem_cost*1.75*30*MARKUP):.0f} TL kişi başı)")
+meh32 = st.checkbox(f"32 Kişilik Mehter ({int(sem_cost*1.75*32*MARKUP):.0f} TL kişi başı)")
+
+# ------------------- HESAPLA BUTONU -------------------
 if st.button("💰 Teklifi Hesapla"):
     toplam = 0
-    bolge = "Adana" if sehir == "Adana" else ("Çevre" if sehir in SEMAZENLER else "Uzak")
-    toplam += SUNUCU[bolge] + SANATCI[bolge]
-    toplam += semazen_sayisi * SEMAZENLER.get(sehir, 1500)
-    if ses_sistemi in SES_SISTEMI:
-        toplam += SES_SISTEMI[ses_sistemi]
-    if palyaço_paketi == "Paket 1":
-        toplam += PALYACO_PAKET_1
-    elif palyaço_paketi == "Paket 2":
-        toplam += PALYACO_PAKET_2[bolge]
-    if dj_var:
-        toplam += DJ_UCRETI[bolge]
-    toplam += ARAC
-    toplam += katilimci_sayisi * YEMEK_KISI_BASI
-    kar = toplam * 0.2
-    genel_toplam = toplam + kar
-
-    st.subheader("📄 Teklif Özeti")
-    st.write(f"""
-- **Yer:** {sehir}
-- **Etkinlik Türü:** {etkinlik}
-- **Semazen Sayısı:** {semazen_sayisi}
-- **DJ:** {"Var" if dj_var else "Yok"}
-- **Palyaço Paketi:** {palyaço_paketi}
-- **Ses Sistemi:** {ses_sistemi if ses_sistemi != "Yok" else "Yok"}
-- **Yemek + Araç Dahil**
-
-### ✅ Toplam (KDV Hariç): {genel_toplam:.2f} TL
-
-📌 Kapora için IBAN:
-**TR80 0001 0009 3070 3253 8850 03**
-Ziraat Bankası Yusuf Koçak
-""")
-
+    # Sunucu + Sanatçı + DJ
+    toplam += sunucu_cost + sanatci_cost + dj_cost
+    # Semazenler
+    toplam += (1 if sem1 else 0 + 2 if sem2 else 0 + 3 if sem3 else 0 + 4 if sem4 else 0) * int(sem_cost*MARKUP)
+    # Ses sistemi
+    toplam += (ses1_cost if ss1 else 0) + (ses2_cost if ss2 else 0)
+    # Palyaço
+    toplam += (int(PALYAÇO_PAKET1*MARKUP) if pal1 else 0) + (int(PALYAÇO_PAKET2[region]*MARKUP) if pal2 else 0)
+    # Mehter
+    for cnt, sel in [(8,meh8),(12,meh12),(18,meh18),(24,meh24),(30,meh30),(32,meh32)]:
+        if sel:
+            toplam += cnt * int(sem_cost*1.75*MARKUP)
+    st.subheader(f"✅ Genel Toplam: {toplam:.0f} TL + KDV")
